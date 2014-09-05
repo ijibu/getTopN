@@ -26,7 +26,7 @@ func main() {
 	c = make(chan int, chanLen)          //简单采用goruntime缓冲，同时最多4个执行，和CPU的数量一致。
 	path := "./log"
 	globIpMap = map[string]int{}
-
+	var m runtime.MemStats
 	filepath.Walk(path, func(path string, f os.FileInfo, e error) error {
 		if f == nil {
 			return e
@@ -36,7 +36,8 @@ func main() {
 		}
 
 		parseIpLogs(path)
-
+		runtime.ReadMemStats(&m)
+		fmt.Printf("%d,%d,%d,%d\n", m.HeapSys, m.HeapAlloc, m.HeapIdle, m.HeapReleased)
 		return nil
 	})
 
@@ -54,17 +55,12 @@ func main() {
 //遍历每一个IP文件，生成一个map，统计每个IP出现的次数。然后进行排序。
 func parseIpLogs(path string) {
 	ipFileMap = map[string]int{}
-	file, err := os.Open(path)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	defer file.Close()
 
-	ss, err := ioutil.ReadAll(file)
+	ss, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
+
 	sz := string(ss)
 	content := strings.Split(sz, "\r\n")
 	sl := len(content)
